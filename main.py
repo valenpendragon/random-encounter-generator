@@ -36,6 +36,7 @@ def make_main_window():
                                  enable_events=True,
                                  visible=True,
                                  default_text="7",
+                                 size=2,
                                  tooltip="Use blocks of 7 days for very long trips.")
     days_layout = [[days_choice_label, days_choice_input]]
     days_frame = sg.Frame("Travel Days", layout=days_layout)
@@ -50,6 +51,65 @@ def make_main_window():
                      finalize=True)
 
 
+def make_journey_window(days: int, tables: list) -> sg.Window:
+    """
+    This function creates a window that allows the user to pick the types of terrain
+    that the party will pass through on their journey, using the number of days to
+    create frames for each section. Each section also allows the GM to choose the
+    percentage chance of an encounter. The types of encounters will be found in the
+    encounter workbook, the tables in tables.json.
+    It is best to keep the number to 7 days at a time to keep the window size from
+    growing too large.
+    :param days:
+    :param tables: list of str
+    :return:
+    """
+    layout = []
+    for day in range(days):
+        # Day 0 is an encounter near the starting point, like in a city or town on
+        # the way out of town.
+        frame = make_journey_row(day, tables)
+        layout.append([frame])
+
+    close_button = sg.Button("Close",
+                             tooltip="Closes this window. Not recommended while working.",
+                             key="close journey")
+    create_button = sg.Button("Create Encounters",
+                              tooltip="Generate a list of encounters",
+                              key="create encounters")
+    bottom_row_layout = [close_button, create_button]
+    layout.append(bottom_row_layout)
+    return sg.Window("Journey Window", layout=layout, finalize=True)
+
+
+def make_journey_row(day: int, tables) -> sg.Frame:
+    """
+    This function creates a Frame for each segment of the journey, allowing the user
+    to enter a percentage chance of an encounter for each segment, to choose a
+    table to use for that segment, and the number of times per day to check.
+    :param day:
+    :return:
+    """
+    frame_label = f"Day {day} of Journey"
+    terrain_label = sg.Text("Choose Terrain and Tier Level")
+    terrain_listbox = sg.Combo(tables, enable_events=True, default_value="Country Shire Tier0",
+                               visible=True, key=f"terrain choice{day}")
+    chance_label = sg.Text("Encounter Chance (%):")
+    chance_input = sg.Input(default_text="10", enable_events=True, size=2,
+                            tooltip="Indicate a percentage change of encounter",
+                            key=f"chance{day}")
+    frequency_label = sg.Text("Frequency Each Day: ")
+    daytime_checkbox = sg.Checkbox("Daytime", default=True, tooltip="Every Morning?",
+                                   enable_events=True, key=f"daytime{day}")
+    evening_checkbox = sg.Checkbox("Evening", default=True, tooltip="Every Evening?",
+                                   enable_events=True, key=f"evening{day}")
+    night_checkbox = sg.Checkbox("Night", default=False, tooltip="Every Night During Sleep?",
+                                 enable_events=True, key=f"night{day}")
+    frame_layout = [[terrain_label, terrain_listbox, chance_label, chance_input],
+                    [frequency_label, daytime_checkbox, evening_checkbox,night_checkbox]]
+    return sg.Frame(frame_label, layout=frame_layout)
+
+
 def main():
     main_window, journey_window = make_main_window(), None
     print(main_window)
@@ -59,10 +119,23 @@ def main():
         print(window, event, values)
         if event == sg.WIN_CLOSED and window == main_window:
             break
+        elif event == sg.WIN_CLOSED and window == journey_window:
+            journey_window.close()
         # Closing next window goes here. There are three windows total.
         # Closing encounter window goes after this one.
 
         match event:
+            case "next":
+                if journey_window != sg.WIN_CLOSED:
+                    journey_window.close()
+                tables = backend.import_tables(values["json filepath"])
+                tables.sort()
+                workbook = backend.import_workbook(tables, values["workbook filepath"])
+                days = int(values["days choice"])
+                journey_window = make_journey_window(days, tables)
+
+            case "close journey":
+                journey_window.close()
             case "exit":
                 break
 
