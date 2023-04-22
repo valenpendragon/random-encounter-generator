@@ -1,4 +1,6 @@
 import PySimpleGUI as sg
+import pandas as pd
+import backend
 
 sg.theme("Black")
 
@@ -49,7 +51,7 @@ def make_main_window():
 
 
 def main():
-    main_window = make_main_window()
+    main_window, journey_window = make_main_window(), None
     print(main_window)
 
     while True:
