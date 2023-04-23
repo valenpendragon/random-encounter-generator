@@ -75,7 +75,7 @@ def make_journey_window(days: int, tables: list) -> sg.Window:
                              tooltip="Closes this window. Not recommended while working.",
                              key="close journey")
     create_button = sg.Button("Create Encounters",
-                              tooltip="Generate a list of encounters",
+                              tooltip="Generate a list of encounters or reroll the current one",
                               key="create encounters")
     bottom_row_layout = [close_button, create_button]
     layout.append(bottom_row_layout)
@@ -110,19 +110,81 @@ def make_journey_row(day: int, tables) -> sg.Frame:
     return sg.Frame(frame_label, layout=frame_layout)
 
 
+def make_encounter_window(days, encounters: dict) -> sg.Window:
+    """
+    This function requires a dictionary structured the way that the default dict
+    is structured. It will use day numbers as keys for the day, then day subdicts
+    to provide details for table source and actual encounters by time of day.
+    :param days: int
+    :param encounters: dict
+    :return: sg.Window
+    """
+    layout = []
+    for day in range(days + 1):
+        frame_label = f"Encounters for Day{day}"
+        if encounters[day]['daytime'] is None:
+            daytime_enc = sg.Text(f"Daytime: Nothing.  ")
+        else:
+            daytime_enc = sg.Text(f"Daytime: {encounters[day]['daytime']}  ")
+        if encounters[day]['evening'] is None:
+            evening_enc = sg.Text(f"Evening: Nothing.  ")
+        else:
+            evening_enc = sg.Text(f"Evening: {encounters[day]['evening']}  ")
+        if encounters[day]['night'] is None:
+            night_enc = sg.Text(f"Night: Nothing  ")
+        else:
+            night_enc = sg.Text(f"Night: {encounters[day]['night']}  ")
+        source = sg.Text(f"Source: {encounters[day]['table']}")
+        frame_layout = [[daytime_enc, evening_enc, night_enc, source]]
+        layout.append([sg.Frame(frame_label, layout=frame_layout)])
+
+    write_frame_label = "Where would you like to write this data?"
+    write_location = sg.Input(default_text="./output",
+                              tooltip="Folder these encounters will write to.",
+                              enable_events=True,
+                              visible=True,
+                              key="folder choice")
+    directory_button = sg.FolderBrowse("Browse",
+                                       key="dest folder",
+                                       target="folder choice")
+    output_file_label = sg.Text("File name for output:")
+    output_file_choice = sg.InputText(default_text=f"encounters-Day0-{days}.txt",
+                                      enable_events=True,
+                                      key="filename")
+    write_frame_layout = [[directory_button, write_location],
+                          [output_file_label, output_file_choice]]
+    layout.append([sg.Frame(write_frame_label, layout=write_frame_layout)])
+
+    close_button = sg.Button("Close",
+                             tooltip="Close this window if you want to reroll.",
+                             key="close encounter")
+    write_button = sg.Button("Write",
+                             tooltip="Write data to specified file in folder indicated",
+                             key="write")
+    write_result = sg.Text(text_color="white",
+                           visible=False,
+                           key="write result")
+    bottom_row_layout = [close_button, write_button, write_result]
+    layout.append(bottom_row_layout)
+    return sg.Window("Encounter Window",
+                     layout=layout,
+                     finalize=True)
+
+
 def main():
-    main_window, journey_window = make_main_window(), None
+    main_window, journey_window, encounter_window = make_main_window(), None, None
     print(main_window)
 
     while True:
         window, event, values = sg.read_all_windows()
         print(window, event, values)
+
         if event == sg.WIN_CLOSED and window == main_window:
             break
         elif event == sg.WIN_CLOSED and window == journey_window:
             journey_window.close()
-        # Closing next window goes here. There are three windows total.
-        # Closing encounter window goes after this one.
+        elif event == sg.WIN_CLOSED and window == encounter_window:
+            encounter_window.close()
 
         match event:
             case "next":
@@ -134,6 +196,11 @@ def main():
                 days = int(values["days choice"])
                 journey_window = make_journey_window(days, tables)
 
+            case "create encounters":
+                encounter_window = make_encounter_window(days, default_journey)
+
+            case "close encounter":
+                encounter_window.close()
             case "close journey":
                 journey_window.close()
             case "exit":
@@ -143,6 +210,62 @@ def main():
 
 
 if __name__ == "__main__":
+    default_journey = {
+        0: {
+            "table": "Urban Township Tier0",
+            "chance": 10,
+            "daytime": None,
+            "evening": None,
+            "night": None
+        },
+        1: {
+            "table": "Open Roads Tier0",
+            "chance": 25,
+            "daytime": "Cockatrice",
+            "evening": "Social",
+            "night": None
+        },
+        2: {
+            "table": "Open Roads Tier0",
+            "chance": 15,
+            "daytime": None,
+            "evening": "Falling Net",
+            "night": "Travel Scenery"
+        },
+        3: {
+            "table": "Country Shire Tier0",
+            "chance": 20,
+            "daytime": "Hail Storm",
+            "evening": None,
+            "night": "Public Ceremony"
+        },
+        4: {
+            "table": "Country Shire Tier0",
+            "chance": 20,
+            "daytime": None,
+            "evening": None,
+            "night": None
+        },
+        5: {
+            "table": "Country Shire Tier0",
+            "chance": 20,
+            "daytime": None,
+            "evening": None,
+            "night": None
+        },
+        6: {
+            "table": "Urban Township Tier0",
+            "chance": 35,
+            "daytime": "Falling Net",
+            "evening": "Thug",
+            "night": None
+        },
+        7: {
+            "table": "Urban Township Tier0",
+            "chance": 30,
+            "daytime": "Travel Scenery",
+            "evening": "Apprentice Mage",
+            "night": None
+        }
+    }
     main()
-else:
-    pass
