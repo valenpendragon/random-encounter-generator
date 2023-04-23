@@ -1,6 +1,7 @@
 import pandas as pd
 import openpyxl
 import json
+import random
 
 
 def import_tables(filepath):
@@ -56,8 +57,37 @@ def import_workbook(tabs: list, filepath):
     return wb
 
 
+def roll_result(table: pd.DataFrame) -> str:
+    """
+    This function accepts a random encounter table, determines the range for the
+    random roll, and returns the string result corresponding to the roll. This table
+    must have the following columns: Roll (int), Max (int), TYPE (str), and
+    ENCOUNTER (str). There can be no overlap between the ranges specified by Roll
+    and Max in each row and Roll <= Max. There can be no blank spaces in these columns.
+    :param table: pd.DataFrame
+    :return: str: result
+    """
+    # Find the min and max for the roll range. These encounter tables can have
+    # numbers far above 100.
+    roll_series = table["Roll"]
+    max_series = table["Max"]
+    min_roll = roll_series.min()
+    max_roll = max_series.max()
+
+    roll = random.randint(min_roll, max_roll)
+    result = table.loc[table.Roll <= roll][table.Max >= roll]["ENCOUNTER"].squeeze()
+    type_result = table.loc[table.Roll <= roll][table.Max >= roll]["TYPE"].squeeze()
+    return f"{result} ({type_result})"
+
+
 if __name__ == "__main__":
     tables = import_tables("./samples/tables.json")
     print(tables)
     workbook = import_workbook(tables, "./samples/encounters.xlsx")
     print(workbook)
+    idx = random.randint(0, len(tables) - 1)
+    print(f"idx: {idx}")
+    table = workbook[tables[idx]]
+    print(table)
+    result = roll_result(table)
+    print(f"result: {result}")

@@ -1,3 +1,5 @@
+import random
+
 import PySimpleGUI as sg
 import pandas as pd
 import backend
@@ -65,7 +67,7 @@ def make_journey_window(days: int, tables: list) -> sg.Window:
     :return:
     """
     layout = []
-    for day in range(days):
+    for day in range(days + 1):
         # Day 0 is an encounter near the starting point, like in a city or town on
         # the way out of town.
         frame = make_journey_row(day, tables)
@@ -195,9 +197,28 @@ def main():
                 workbook = backend.import_workbook(tables, values["workbook filepath"])
                 days = int(values["days choice"])
                 journey_window = make_journey_window(days, tables)
+                print(f"days: {days}. tables: {tables}")
+                print(f"workbook: {workbook}")
 
             case "create encounters":
-                encounter_window = make_encounter_window(days, default_journey)
+                if encounter_window != sg.WIN_CLOSED:
+                    encounter_window.close()
+                journey = {}
+                for day in range(days + 1):
+                    journey[day] = {}
+                    journey[day]["table"] = values[f"terrain choice{day}"]
+                    journey[day]["chance"] = int(values[f"chance{day}"])
+                    table = workbook[journey[day]["table"]]
+                    for time_of_day in ("daytime", "evening", "night"):
+                        roll = random.randint(1, 100)
+                        if roll <= journey[day]["chance"]:
+                            result = backend.roll_result(table)
+                        else:
+                            result = None
+                        journey[day][time_of_day] = result
+                print(journey)
+
+                encounter_window = make_encounter_window(days, journey)
 
             case "close encounter":
                 encounter_window.close()
