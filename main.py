@@ -220,6 +220,23 @@ def main():
 
                 encounter_window = make_encounter_window(days, journey)
 
+            case "write":
+                folder = values["folder choice"]
+                filename = values["filename"]
+                filepath = f"{folder}/{filename}"
+                lines = ["Reminder: Day 0 is the day the party sets out.\n\n"]
+                for day in range(days + 1):
+                    line1 = f"Day {day}: Location Type: {journey[day]['table']}\n"
+                    line2 = f"Daytime: {journey[day]['daytime']}. " \
+                            f"Evening: {journey[day]['evening']}. " \
+                            f"Night: {journey[day]['night']}.\n\n"
+                    lines.extend([line1, line2])
+                with open(filepath, "w") as fp:
+                    fp.writelines(lines)
+                encounter_window["write result"].update(value="Encounters written to disk.",
+                                                        visible=True,
+                                                        text_color="white")
+
             case "close encounter":
                 encounter_window.close()
             case "close journey":
