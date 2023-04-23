@@ -75,8 +75,16 @@ def roll_result(table: pd.DataFrame) -> str:
     max_roll = max_series.max()
 
     roll = random.randint(min_roll, max_roll)
-    result = table.loc[table.Roll <= roll][table.Max >= roll]["ENCOUNTER"].squeeze()
-    type_result = table.loc[table.Roll <= roll][table.Max >= roll]["TYPE"].squeeze()
+    print(f"roll: {roll}")
+    # Filter for smaller than or equal to roll in table.Roll.
+    filtered = table.loc[table.Roll <= roll]
+    print(f"1st filter: {filtered}")
+    # Now, filter again for larger than or equal to roll in table.Max.
+    # This should reduce it to a single row if there are no overlaps.
+    filtered = filtered.loc[filtered.Max >= roll]
+    print(f"2nd filter: {filtered}")
+    result = filtered["ENCOUNTER"].squeeze()
+    type_result = filtered["TYPE"].squeeze()
     return f"{result} ({type_result})"
 
 
